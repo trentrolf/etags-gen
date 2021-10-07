@@ -19,8 +19,10 @@ exclude_paths = config['etags-gen-config']['exclude-paths'].split()
 
 etags_cmd = ['etags']
 
-if args.outfilename is not None:
-    etags_cmd.append('-o')
+etags_cmd.append('-o')
+if args.outfilename is None:
+    etags_cmd.append(os.path.join(os.path.split(args.filename)[0], 'TAGS'))
+else:
     etags_cmd.append(args.outfilename)
 
 for include_path in include_paths:
@@ -37,7 +39,5 @@ for include_path in include_paths:
 
                 if not excluded_file:
                     etags_cmd.append(file_path)
-
-# print(*etags_list, sep = "\n")
 
 subprocess.run(etags_cmd)
