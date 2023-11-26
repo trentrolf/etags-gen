@@ -1,17 +1,29 @@
 #!/usr/bin/python3
 
+import argparse
 import subprocess
 import configparser
-import argparse
-import os
+import os,sys
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-i', dest="filename", help="Input file INI format.", metavar="FILE", required=True)
-parser.add_argument('-o', dest="outfilename", help="Output TAGS file.", metavar="FILE")
+import pathlib
+cwd = pathlib.Path().resolve()
+
+this_dir = pathlib.Path(__file__).parent.resolve()
+readme = open(this_dir / "README.md", "r",newline='')
+help_string = readme.read()
+readme.close()
+
+parser = argparse.ArgumentParser(description = help_string,formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument("-v", "--verbose", help="Print included files", action="store_true")
 args = parser.parse_args()
 
+config_file = cwd / "etags-gen.ini"
+if config_file.is_file() == False:
+    print("etags-gen.ini not found in current working directory")
+    sys.exit(1)
+
 config = configparser.ConfigParser()
-config.read(args.filename)
+config.read(config_file)
 
 include_paths = config['etags-gen-config']['include-paths'].split()
 include_extensions = config['etags-gen-config']['include-extensions'].split()
@@ -19,11 +31,7 @@ exclude_paths = config['etags-gen-config']['exclude-paths'].split()
 
 etags_cmd = ['etags']
 
-etags_cmd.append('-o')
-if args.outfilename is None:
-    etags_cmd.append(os.path.join(os.path.split(args.filename)[0], 'TAGS'))
-else:
-    etags_cmd.append(args.outfilename)
+etags_cmd.append('TAGS')
 
 for include_path in include_paths:
     for root, subdirs, files in os.walk(include_path):
@@ -35,9 +43,11 @@ for include_path in include_paths:
                 # Now check for exclusions
                 for exclude_path in exclude_paths:
                     if exclude_path in file_path:
-                        exlcuded_file = True
-
+                        excluded_file = True
+                        break
                 if not excluded_file:
+                    if args.verbose:
+                        print("{}".format(file_path))
                     etags_cmd.append(file_path)
 
 subprocess.run(etags_cmd)
